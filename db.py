@@ -41,11 +41,7 @@ def save_users(users: List[User]):
     unique_users = [*toolz.unique(users, key=lambda u: u.id)]
     conn = db_conn()
     crs = conn.cursor()
-    execute_values(crs, """
-                        INSERT INTO users (user_id, data) VALUES %s
-                        ON CONFLICT (user_id) DO UPDATE SET
-                          data = EXCLUDED.data,
-                          observed_at = (now() at time zone 'utc');""",
+    execute_values(crs, """INSERT INTO users (user_id, data) VALUES %s ON CONFLICT DO NOTHING;""",
                    [*map(user_to_record, unique_users)])
     conn.commit()
 
@@ -60,14 +56,8 @@ def save_tweets(tweets: List[Status]):
     save_users([t.user for t in tweets])
     conn = db_conn()
     crs = conn.cursor()
-    execute_values(crs, """
-                      INSERT INTO tweets (status_id, created_at, data) 
-                      VALUES %s
-                      ON CONFLICT (status_id) DO UPDATE SET
-                        created_at = EXCLUDED.created_at,
-                        data = EXCLUDED.data,
-                        observed_at = (now() at time zone 'utc');
-                   """, [*map(tweet_to_record, tweets)])
+    execute_values(crs, """INSERT INTO tweets (status_id, created_at, data)
+                           VALUES %s ON CONFLICT DO NOTHING;""", [*map(tweet_to_record, tweets)])
     conn.commit()
 
 
