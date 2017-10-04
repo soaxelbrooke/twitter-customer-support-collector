@@ -22,7 +22,7 @@ def get_api() -> Api:
                access_token_secret=os.environ['TWITTER_ACCESS_SECRET'])
 
 
-def fetch_tweets_at_user(screen_name: str, since: datetime=datetime.min
+def fetch_tweets_at_user(screen_name: str, since: datetime=datetime(1999, 1, 1)
                          ) -> Tuple[List[Status], ApiRequest]:
     """ Fetches the most recent 100 tweets at the provided screen name """
     api = get_api()

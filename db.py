@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, List
 
 import psycopg2
@@ -40,14 +41,18 @@ def save_users(users: List[User]):
     unique_users = [*toolz.unique(users, key=lambda u: u.id)]
     conn = db_conn()
     crs = conn.cursor()
-    execute_values(crs, """INSERT INTO users (user_id, data) VALUES (%S, %S)""",
+    execute_values(crs, """
+                        INSERT INTO users (user_id, data) VALUES %s
+                        ON CONFLICT (user_id) DO UPDATE SET
+                          data = EXCLUDED.data,
+                          observed_at = (now() at time zone 'utc');""",
                    [*map(user_to_record, unique_users)])
     conn.commit()
 
 
 def tweet_to_record(tweet: Status) -> tuple:
     """ Converts a tweet to a record that can be saved in postgres """
-    return str(tweet.id), tweet.created_at_in_seconds, tweet.AsJsonString()
+    return str(tweet.id), datetime.fromtimestamp(tweet.created_at_in_seconds), tweet.AsJsonString()
 
 
 def save_tweets(tweets: List[Status]):
@@ -57,8 +62,11 @@ def save_tweets(tweets: List[Status]):
     crs = conn.cursor()
     execute_values(crs, """
                       INSERT INTO tweets (status_id, created_at, data) 
-                      VALUES (%S, to_timestamp(%s), %S)
-                      ON CONFLICT 
+                      VALUES %s
+                      ON CONFLICT (status_id) DO UPDATE SET
+                        created_at = EXCLUDED.created_at,
+                        data = EXCLUDED.data,
+                        observed_at = (now() at time zone 'utc');
                    """, [*map(tweet_to_record, tweets)])
     conn.commit()
 
@@ -67,7 +75,7 @@ def save_request(request: ApiRequest):
     """ Saves an API request to postgres """
     conn = db_conn()
     crs = conn.cursor()
-    crs.execute("INSERT INTO requests (screen_name, kind) VALUES (%S, %S);", request)
+    crs.execute("INSERT INTO requests (screen_name, kind) VALUES (%s, %s);", request)
     conn.commit()
 
 
@@ -81,5 +89,5 @@ def prioritize_screen_names(screen_names: List[str]) -> List[str]:
                    FROM requests
                    ORDER BY screen_name, created_at DESC NULLS LAST;""")
 
-    requests = {r.screen_name: r.created_at for r in crs.fetchall()}
+    requests = {r.screen_name: r.created_at.timestamp() for r in crs.fetchall()}
     return sorted(screen_names, key=lambda sn: requests.get(sn, 0))
