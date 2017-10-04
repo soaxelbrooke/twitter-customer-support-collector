@@ -90,4 +90,4 @@ def prioritize_screen_names(screen_names: List[str]) -> List[str]:
                    ORDER BY screen_name, created_at DESC NULLS LAST;""")
 
     requests = {r.screen_name: r.created_at.timestamp() for r in crs.fetchall()}
-    return sorted(screen_names, key=lambda sn: requests.get(sn, 0))
+    return sorted(screen_names, key=lambda sn: requests.get(sn.strip('@').lower(), 0))
