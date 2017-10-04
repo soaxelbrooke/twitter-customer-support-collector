@@ -25,7 +25,7 @@ def get_last_tweet(screen_name: str) -> Optional[Status]:
     """ Attempts to fetch the last seen tweet from the provided screen name """
     conn = db_conn()
     crs = conn.cursor()
-    crs.execute(LAST_TWEET_QUERY, (screen_name, ))
+    crs.execute(LAST_TWEET_QUERY, (screen_name,))
     results = crs.fetchall()
     return results[0] if len(results) > 0 else None
 
@@ -40,7 +40,7 @@ def save_users(users: List[User]):
     unique_users = [*toolz.unique(users, key=lambda u: u.id)]
     conn = db_conn()
     crs = conn.cursor()
-    execute_values(crs, """INSERT INTO users (user_id, data) VALUES (%s, %s)""",
+    execute_values(crs, """INSERT INTO users (user_id, data) VALUES (%S, %S)""",
                    [*map(user_to_record, unique_users)])
     conn.commit()
 
@@ -57,7 +57,7 @@ def save_tweets(tweets: List[Status]):
     crs = conn.cursor()
     execute_values(crs, """
                       INSERT INTO tweets (status_id, created_at, data) 
-                      VALUES (%s, to_timestamp(%s), %s)
+                      VALUES (%S, to_timestamp(%s), %S)
                       ON CONFLICT 
                    """, [*map(tweet_to_record, tweets)])
     conn.commit()
@@ -67,5 +67,19 @@ def save_request(request: ApiRequest):
     """ Saves an API request to postgres """
     conn = db_conn()
     crs = conn.cursor()
-    crs.execute("INSERT INTO requests (screen_name, kind) VALUES (%s, %s);", request)
+    crs.execute("INSERT INTO requests (screen_name, kind) VALUES (%S, %S);", request)
     conn.commit()
+
+
+def prioritize_screen_names(screen_names: List[str]) -> List[str]:
+    """ Re-orders provided screen names by collection priority.  Can be based on inferred volume,
+        time since last collect, and other metadata.
+    """
+    conn = db_conn()
+    crs = conn.cursor()
+    crs.execute("""SELECT DISTINCT ON (screen_name) * 
+                   FROM requests
+                   ORDER BY screen_name, created_at DESC NULLS LAST;""")
+
+    requests = {r.screen_name: r.created_at for r in crs.fetchall()}
+    return sorted(screen_names, key=lambda sn: requests.get(sn, 0))

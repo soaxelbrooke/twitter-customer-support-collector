@@ -17,7 +17,7 @@ def main():
 
     monitored_screen_names = [*map(str.strip('@'), os.environ['MONITORED_SCREEN_NAMES'].split(','))]
 
-    for screen_name in monitored_screen_names:
+    for screen_name in db.prioritize_screen_names(monitored_screen_names):
         logging.info(f"Collecting tweets for ${screen_name}...")
 
         tweets, request = fetch.fetch_replies_from_user(screen_name)
