@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 import fetch
 import db
 
+API_LIMIT = int(os.environ['SCREEN_NAMES_LIMIT'])
+
 
 def main():
     """ Run the collector """
@@ -16,8 +18,10 @@ def main():
         level=getattr(logging, os.environ.get('LOG_LEVEL', 'INFO')))
 
     monitored_screen_names = os.environ['MONITORED_SCREEN_NAMES'].split(',')
+    screen_names_to_collect = db.prioritize_screen_names(monitored_screen_names)[:API_LIMIT]
+    logging.info(f'Collecting the following screen names: {", ".join(screen_names_to_collect)}')
 
-    for screen_name in db.prioritize_screen_names(monitored_screen_names):
+    for screen_name in screen_names_to_collect:
         clean_sn = screen_name.strip('@').lower()
         logging.info(f"Collecting tweets for {screen_name}...")
 
