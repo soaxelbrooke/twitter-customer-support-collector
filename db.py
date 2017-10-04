@@ -1,9 +1,11 @@
-from typing import Optional
+from typing import Optional, List
 
 import psycopg2
-from psycopg2.extras import NamedTupleConnection
+from psycopg2.extras import NamedTupleConnection, execute_values
 import toolz
-from twitter import Status
+from twitter import Status, User
+
+from fetch import ApiRequest
 
 
 @toolz.memoize
@@ -14,7 +16,8 @@ def db_conn():
 LAST_TWEET_QUERY = """
     SELECT "data" FROM tweets 
     WHERE "data" ->> 'user' ->> 'screen_name' ILIKE %s
-    ORDER BY 
+    ORDER BY created_at DESC
+    LIMIT 1;
 """
 
 
@@ -23,5 +26,46 @@ def get_last_tweet(screen_name: str) -> Optional[Status]:
     conn = db_conn()
     crs = conn.cursor()
     crs.execute(LAST_TWEET_QUERY, (screen_name, ))
+    results = crs.fetchall()
+    return results[0] if len(results) > 0 else None
 
 
+def user_to_record(user: User) -> tuple:
+    """ Converts a user to a record that can be saved in postgres """
+    return str(user.id), user.AsJsonString()
+
+
+def save_users(users: List[User]):
+    """ Saves users pulled from tweets """
+    unique_users = [*toolz.unique(users, key=lambda u: u.id)]
+    conn = db_conn()
+    crs = conn.cursor()
+    execute_values(crs, """INSERT INTO users (user_id, data) VALUES (%s, %s)""",
+                   [*map(user_to_record, unique_users)])
+    conn.commit()
+
+
+def tweet_to_record(tweet: Status) -> tuple:
+    """ Converts a tweet to a record that can be saved in postgres """
+    return str(tweet.id), tweet.created_at_in_seconds, tweet.AsJsonString()
+
+
+def save_tweets(tweets: List[Status]):
+    """ Saves a list of tweets to postgres """
+    save_users([t.user for t in tweets])
+    conn = db_conn()
+    crs = conn.cursor()
+    execute_values(crs, """
+                      INSERT INTO tweets (status_id, created_at, data) 
+                      VALUES (%s, to_timestamp(%s), %s)
+                      ON CONFLICT 
+                   """, [*map(tweet_to_record, tweets)])
+    conn.commit()
+
+
+def save_request(request: ApiRequest):
+    """ Saves an API request to postgres """
+    conn = db_conn()
+    crs = conn.cursor()
+    crs.execute("INSERT INTO requests (screen_name, request_kind) VALUES (%s, %s);", request)
+    conn.commit()

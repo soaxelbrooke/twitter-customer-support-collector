@@ -2,11 +2,16 @@
 from datetime import datetime
 
 import os
-from typing import Optional, List
+from typing import Optional, List, NamedTuple, Tuple
 
-from twitter import Api, User, Status
+from twitter import Api, Status
 
 MAX_FETCH_COUNT = 100
+
+ApiRequest = NamedTuple('ApiRequest', [
+    ('screen_name', str),
+    ('request_kind', str)
+])
 
 
 def get_api() -> Api:
@@ -17,15 +22,17 @@ def get_api() -> Api:
                access_token_secret=os.environ['TWITTER_ACCESS_SECRET'])
 
 
-def fetch_tweets_at_user(screen_name: str, since: datetime=datetime.min) -> List[Status]:
+def fetch_tweets_at_user(screen_name: str, since: datetime=datetime.min
+                         ) -> Tuple[List[Status], ApiRequest]:
     """ Fetches the most recent 100 tweets at the provided screen name """
     api = get_api()
     return api.GetSearch(term='@{}'.format(screen_name), count=MAX_FETCH_COUNT,
-                         since=since.strftime('%Y-%m-%d'))
+                         since=since.strftime('%Y-%m-%d')), ApiRequest(screen_name, 'get_ats')
 
 
-def fetch_replies_from_user(screen_name: str, since_id: Optional[str]=None) -> List[Status]:
+def fetch_replies_from_user(screen_name: str, since_id: Optional[str]=None
+                            ) -> Tuple[List[Status], ApiRequest]:
     """ Fetches the most recent 100 replies from the provided screen name """
     api = get_api()
     return api.GetUserTimeline(screen_name=screen_name, exclude_replies=False, since_id=since_id,
-                               count=MAX_FETCH_COUNT)
+                               count=MAX_FETCH_COUNT), ApiRequest(screen_name, 'get_replies')

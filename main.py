@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 
 import fetch
+import db
 
 
 def main():
@@ -18,7 +19,20 @@ def main():
 
     for screen_name in monitored_screen_names:
         logging.info(f"Collecting tweets for ${screen_name}...")
-        fetch.fetch_replies_from_user(screen_name)
+
+        tweets, request = fetch.fetch_replies_from_user(screen_name)
+        logging.info("Saving replies request...")
+        db.save_request(request)
+        logging.info(f"Saving ${len(tweets)} tweets...")
+        db.save_tweets(tweets)
+
+        tweets, request = fetch.fetch_tweets_at_user(screen_name)
+        logging.info("Saving ats request...")
+        db.save_request(request)
+        logging.info(f"Saving ${len(tweets)} tweets...")
+        db.save_tweets(tweets)
+
+        logging.info(f"Finished collection for ${screen_name}.")
 
 
 if __name__ == '__main__':
