@@ -1,3 +1,4 @@
 python-twitter
 psycopg2
 python-dotenv
+toolz
