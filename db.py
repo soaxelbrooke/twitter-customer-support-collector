@@ -67,5 +67,5 @@ def save_request(request: ApiRequest):
     """ Saves an API request to postgres """
     conn = db_conn()
     crs = conn.cursor()
-    crs.execute("INSERT INTO requests (screen_name, request_kind) VALUES (%s, %s);", request)
+    crs.execute("INSERT INTO requests (screen_name, kind) VALUES (%s, %s);", request)
     conn.commit()
