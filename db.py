@@ -97,7 +97,7 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
     inferred_missing = {sn: collect_age.get(sn, 100) * daily_vol_estimates.get(sn, 1)
                         for sn  in screen_names}
 
-    for sn, missing in sorted(inferred_missing.items(), lambda p: -p[1]):
+    for sn, missing in sorted(inferred_missing.items(), key=lambda p: -p[1]):
         logging.info(f"{sn} missing: {missing}")
 
     return sorted(screen_names, key=lambda sn: -inferred_missing[sn])
