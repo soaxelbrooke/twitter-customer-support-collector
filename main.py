@@ -52,8 +52,9 @@ def main():
         logging.info(f"Fetching {len(tweet_ids)} orphans from twitter...")
         tweets = fetch.fetch_tweets_by_id(tweet_ids)
         inaccessible_tweets = {t.id for t in tweets}.difference({*tweet_ids})
+        logging.info(f"Saving {len(inaccessible_tweets)} inaccessible tweets...")
         db.save_inaccessible_tweet_ids(list(inaccessible_tweets))
-        logging.info(f"Saving {len(tweets)} tweets to postgres...")
+        logging.info(f"Saving {len(tweets)} tweets...")
         db.save_tweets(tweets)
 
     logging.info("Done!")
