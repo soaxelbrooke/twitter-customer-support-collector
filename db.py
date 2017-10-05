@@ -139,7 +139,7 @@ def get_orphaned_tweets() -> List[int]:
         FROM tweets replies LEFT JOIN tweets requests
           ON replies.data->>'in_reply_to_status_id'=requests.data->>'id'
         LEFT JOIN inaccessible_tweets
-          ON  replies.data->>'in_reply_to_status_id'=inaccessible_tweets.status_id
+          ON  replies.data->>'in_reply_to_status_id'::TEXT=inaccessible_tweets.status_id
         WHERE replies.data->>'in_reply_to_status_id' IS NOT NULL 
           AND requests.data IS NULL
           AND inaccessible_tweets.status_id IS NULL

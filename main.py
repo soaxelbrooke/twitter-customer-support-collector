@@ -51,7 +51,7 @@ def main():
     for tweet_ids in orphan_batches:
         logging.info(f"Fetching {len(tweet_ids)} orphans from twitter...")
         tweets = fetch.fetch_tweets_by_id(tweet_ids)
-        inaccessible_tweets = {t.id for t in tweets}.difference({*tweet_ids})
+        inaccessible_tweets = {*tweet_ids}.difference({t.id for t in tweets})
         logging.info(f"Saving {len(inaccessible_tweets)} inaccessible tweets...")
         db.save_inaccessible_tweet_ids(list(inaccessible_tweets))
         logging.info(f"Saving {len(tweets)} tweets...")
