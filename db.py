@@ -118,7 +118,7 @@ def estimate_daily_volume(conn, screen_name: str) -> float:
 
 def days_since_collect(conn, screen_name: str) -> float:
     """ Get the number of days since the screen name has been collected """
-    datetime_since = get_all_days_since_collect(conn)[screen_name.strip('@').lower()]
+    datetime_since = get_all_days_since_collect(conn).get(screen_name.strip('@').lower(), 100)
     return datetime_since.total_seconds() / 86400.0
 
 
