@@ -94,7 +94,7 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
     collect_age = {sn: days_since_collect(conn, sn) for sn in screen_names}
 
     return sorted(screen_names,
-                  key=lambda sn: collect_age.get(sn, 100) * daily_vol_estimates.get(sn, 1))
+                  key=lambda sn: -collect_age.get(sn, 100) * daily_vol_estimates.get(sn, 1))
 
 
 def estimate_daily_volume(conn, screen_name: str) -> float:
