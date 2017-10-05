@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 import psycopg2
 from psycopg2.extras import NamedTupleConnection, execute_values
@@ -71,7 +71,7 @@ def save_request(request: ApiRequest):
     conn.commit()
 
 
-def prioritize_screen_names(screen_names: List[str]) -> List[str]:
+def prioritize_by_last_scrape(screen_names: List[str]) -> List[str]:
     """ Re-orders provided screen names by collection priority.  Can be based on inferred volume,
         time since last collect, and other metadata.
     """
@@ -83,3 +83,44 @@ def prioritize_screen_names(screen_names: List[str]) -> List[str]:
 
     requests = {r.screen_name: r.created_at.timestamp() for r in crs.fetchall()}
     return sorted(screen_names, key=lambda sn: requests.get(sn.strip('@').lower(), 0))
+
+
+def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
+    """ Prioritizes by inferring how many tweets have happened since the last scrape for each
+        screen name.
+    """
+    conn = db_conn()
+    daily_vol_estimates = {sn: estimate_daily_volume(conn, sn) for sn in screen_names}
+    collect_age = {sn: days_since_collect(conn, sn) for sn in screen_names}
+
+    return sorted(screen_names,
+                  key=lambda sn: collect_age.get(sn, 100) * daily_vol_estimates.get(sn, 1))
+
+
+def estimate_daily_volume(conn, screen_name: str) -> float:
+    """ Estimate the number of tweets an account gets a day """
+    query = """
+        WITH last_scrape AS (SELECT max(created_at) AS last FROM requests WHERE screen_name=%(sn)s)
+        SELECT count(*) / 3.0 AS daily_tweets FROM tweets, last_scrape
+        WHERE tweets.created_at > (last_scrape.last - INTERVAL '3 days')
+          AND tweets.data #>> '{user,screen_name}' ILIKE %(sn)s;
+    """
+    crs = conn.cursor()
+    crs.execute(query, {'sn': screen_name.strip('@').lower()})
+    return crs.fetchall[0].daily_tweets
+
+
+def days_since_collect(conn, screen_name: str) -> float:
+    """ Get the number of days since the screen name has been collected """
+    return get_all_days_since_collect(conn)[screen_name.strip('@').lower()]
+
+
+@toolz.memoize
+def get_all_days_since_collect(conn) -> Dict[str, float]:
+    """ Gets a dict of all days since collect """
+    query = """SELECT screen_name, min((now() at time zone 'utc') - created_at) 
+               FROM requests GROUP BY screen_name;"""
+    crs = conn.cursor()
+    crs.execute(query)
+    return dict(crs.fetchall())
+
