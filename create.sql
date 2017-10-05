@@ -24,3 +24,7 @@ CREATE TABLE IF NOT EXISTS requests (
 CREATE INDEX IF NOT EXISTS request_created_at ON requests (created_at);
 CREATE INDEX IF NOT EXISTS request_kind ON requests (kind);
 CREATE INDEX IF NOT EXISTS request_kind_created_at ON requests (kind, created_at);
+
+CREATE TABLE IF NOT EXISTS inaccessible_tweets (
+  status_id TEXT PRIMARY KEY
+);

@@ -136,10 +136,13 @@ def get_orphaned_tweets() -> List[int]:
     """ Finds orphaned tweet IDs.  Orphans are tweets we don't have the in-reply-to tweet yet. """
     no_request_query = """
         SELECT replies.data->>'in_reply_to_status_id' AS reply_to_id
-        FROM tweets replies LEFT JOIN tweets requests 
-          ON replies.data->>'in_reply_to_status_id'=requests.data->>'id' 
+        FROM tweets replies LEFT JOIN tweets requests
+          ON replies.data->>'in_reply_to_status_id'=requests.data->>'id'
+        LEFT JOIN inaccessible_tweets
+          ON  replies.data->>'in_reply_to_status_id'=inaccessible_tweets.status_id
         WHERE replies.data->>'in_reply_to_status_id' IS NOT NULL 
           AND requests.data IS NULL
+          AND inaccessible_tweets.status_id IS NULL
         LIMIT 25000;
     """
 
@@ -147,3 +150,11 @@ def get_orphaned_tweets() -> List[int]:
     crs = conn.cursor()
     crs.execute(no_request_query)
     return [row.reply_to_id for row in crs.fetchall()]
+
+
+def save_inaccessible_tweet_ids(tweet_ids: List[str]):
+    """ Insert inaccessible tweet IDs into postgres """
+    conn = db_conn()
+    crs = conn.cursor()
+    execute_values(crs, "INSERT INTO innaccessible_tweets (status_id) VALUES %s",
+                   [(status_id, ) for status_id in tweet_ids])

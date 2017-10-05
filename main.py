@@ -45,12 +45,14 @@ def main():
         logging.info(f"Finished collection for {screen_name}.")
 
     logging.info("Fetching orphaned tweets...")
-    orphaned_tweet_ids = db.get_orphaned_tweets()
+    orphaned_tweet_ids = set(db.get_orphaned_tweets())
     orphan_batches = [*toolz.take(250, toolz.partition_all(100, orphaned_tweet_ids))]
 
     for tweet_ids in orphan_batches:
         logging.info(f"Fetching {len(tweet_ids)} orphans from twitter...")
         tweets = fetch.fetch_tweets_by_id(tweet_ids)
+        inaccessible_tweets = {t.id for t in tweets}.difference({*tweet_ids})
+        db.save_inaccessible_tweet_ids(list(inaccessible_tweets))
         logging.info(f"Saving {len(tweets)} tweets to postgres...")
         db.save_tweets(tweets)
 
