@@ -156,5 +156,5 @@ def save_inaccessible_tweet_ids(tweet_ids: List[str]):
     """ Insert inaccessible tweet IDs into postgres """
     conn = db_conn()
     crs = conn.cursor()
-    execute_values(crs, "INSERT INTO innaccessible_tweets (status_id) VALUES %s",
+    execute_values(crs, "INSERT INTO inaccessible_tweets (status_id) VALUES %s",
                    [(status_id, ) for status_id in tweet_ids])
