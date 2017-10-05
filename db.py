@@ -113,7 +113,7 @@ def estimate_daily_volume(conn, screen_name: str) -> float:
     """
     crs = conn.cursor()
     crs.execute(query, {'sn': screen_name.strip('@').lower()})
-    return float(crs.fetchall()[0].daily_tweets)
+    return min([float(crs.fetchall()[0].daily_tweets), 1.0])
 
 
 def days_since_collect(conn, screen_name: str) -> float:
