@@ -1,11 +1,16 @@
 import logging
 import os
 
+import toolz
 from dotenv import load_dotenv
 
 import fetch
 import db
 
+
+# Rate limit info for app-based access per 15 minute period:
+# search/tweets - 450
+# statuses/lookup - 300
 API_LIMIT = int(os.environ['SCREEN_NAMES_LIMIT'])
 
 
@@ -38,6 +43,18 @@ def main():
         db.save_tweets(tweets)
 
         logging.info(f"Finished collection for {screen_name}.")
+
+    logging.info("Fetching orphaned tweets...")
+    orphaned_tweet_ids = db.get_orphaned_tweets()
+    orphan_batches = [*toolz.take(250, toolz.partition_all(100, orphaned_tweet_ids))]
+
+    for tweet_ids in orphan_batches:
+        logging.info(f"Fetching {len(tweet_ids)} orphans from twitter...")
+        tweets = fetch.fetch_tweets_by_id(tweet_ids)
+        logging.info(f"Saving {len(tweets)} tweets to postgres...")
+        db.save_tweets(tweets)
+
+    logging.info("Done!")
 
 
 if __name__ == '__main__':

@@ -36,3 +36,8 @@ def fetch_replies_from_user(screen_name: str, since_id: Optional[str]=None
     api = get_api()
     return api.GetUserTimeline(screen_name=screen_name, exclude_replies=False, since_id=since_id,
                                count=MAX_FETCH_COUNT), ApiRequest(screen_name, 'get_replies')
+
+
+def fetch_tweets_by_id(tweet_ids: List[int]) -> List[Status]:
+    """ Fetches a batch of tweets by ID from the statuses/lookup endpoint """
+    return get_api().LookupStatuses(tweet_ids)

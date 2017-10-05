@@ -131,3 +131,19 @@ def get_all_days_since_collect(conn) -> Dict[str, float]:
     crs.execute(query)
     return dict(crs.fetchall())
 
+
+def get_orphaned_tweets() -> List[int]:
+    """ Finds orphaned tweet IDs.  Orphans are tweets we don't have the in-reply-to tweet yet. """
+    no_request_query = """
+        SELECT replies.data->>'in_reply_to_status_id' AS reply_to_id
+        FROM tweets replies LEFT JOIN tweets requests 
+          ON replies.data->>'in_reply_to_status_id'=requests.data->>'id' 
+        WHERE replies.data->>'in_reply_to_status_id' IS NOT NULL 
+          AND requests.data IS NULL
+        LIMIT 25000;
+    """
+
+    conn = db_conn()
+    crs = conn.cursor()
+    crs.execute(no_request_query)
+    return [row.reply_to_id for row in crs.fetchall()]
