@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Optional, List, Dict
 
@@ -93,8 +94,13 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
     daily_vol_estimates = {sn: estimate_daily_volume(conn, sn) for sn in screen_names}
     collect_age = {sn: days_since_collect(conn, sn) for sn in screen_names}
 
-    return sorted(screen_names,
-                  key=lambda sn: -collect_age.get(sn, 100) * daily_vol_estimates.get(sn, 1))
+    inferred_missing = {sn: collect_age.get(sn, 100) * daily_vol_estimates.get(sn, 1)
+                        for sn  in screen_names}
+
+    for sn, missing in sorted(inferred_missing.items(), lambda p: -p[1]):
+        logging.info(f"{sn} missing: {missing}")
+
+    return sorted(screen_names, key=lambda sn: -inferred_missing[sn])
 
 
 def estimate_daily_volume(conn, screen_name: str) -> float:
