@@ -49,7 +49,8 @@ def save_users(users: List[User]):
 
 def tweet_to_record(tweet: Status) -> tuple:
     """ Converts a tweet to a record that can be saved in postgres """
-    return str(tweet.id), datetime.fromtimestamp(tweet.created_at_in_seconds), tweet.AsJsonString()
+    json_string = tweet.AsJsonString().replace('\u0000', '')
+    return str(tweet.id), datetime.fromtimestamp(tweet.created_at_in_seconds), json_string
 
 
 def save_tweets(tweets: List[Status]):
