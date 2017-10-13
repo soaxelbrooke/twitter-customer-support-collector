@@ -34,7 +34,7 @@ def get_last_tweet(screen_name: str) -> Optional[Status]:
 
 def user_to_record(user: User) -> tuple:
     """ Converts a user to a record that can be saved in postgres """
-    return str(user.id), user.AsJsonString()
+    return str(user.id), user.AsJsonString().replace('\u0000', '')
 
 
 def save_users(users: List[User]):
