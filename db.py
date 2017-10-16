@@ -1,10 +1,10 @@
 import logging
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import List, Dict
 
 import psycopg2
-from psycopg2.extras import NamedTupleConnection, execute_values
 import toolz
+from psycopg2.extras import NamedTupleConnection, execute_values
 from twitter import Status, User
 
 from fetch import ApiRequest
@@ -21,15 +21,6 @@ LAST_TWEET_QUERY = """
     ORDER BY created_at DESC
     LIMIT 1;
 """
-
-
-def get_last_tweet(screen_name: str) -> Optional[Status]:
-    """ Attempts to fetch the last seen tweet from the provided screen name """
-    conn = db_conn()
-    crs = conn.cursor()
-    crs.execute(LAST_TWEET_QUERY, (screen_name,))
-    results = crs.fetchall()
-    return results[0] if len(results) > 0 else None
 
 
 def user_to_record(user: User) -> tuple:
@@ -96,7 +87,7 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
     collect_age = {sn: days_since_collect(conn, sn) for sn in screen_names}
 
     inferred_missing = {sn: collect_age.get(sn, 100) * daily_vol_estimates.get(sn, 1)
-                        for sn  in screen_names}
+                        for sn in screen_names}
 
     for sn, missing in sorted(inferred_missing.items(), key=lambda p: -p[1]):
         logging.info(f"{sn} missing: {missing}")

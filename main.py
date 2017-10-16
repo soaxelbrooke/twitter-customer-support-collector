@@ -1,8 +1,10 @@
 import logging
 import os
+import traceback
 
 import toolz
 from dotenv import load_dotenv
+from twitter import TwitterError
 
 import fetch
 import db
@@ -30,17 +32,25 @@ def main():
         clean_sn = screen_name.strip('@').lower()
         logging.info(f"Collecting tweets for {screen_name}...")
 
-        tweets, request = fetch.fetch_replies_from_user(clean_sn)
-        logging.info("Saving replies request...")
-        db.save_request(request)
-        logging.info(f"Saving {len(tweets)} tweets...")
-        db.save_tweets(tweets)
+        try:
+            tweets, request = fetch.fetch_replies_from_user(clean_sn)
+            logging.info("Saving replies request...")
+            db.save_request(request)
+            logging.info(f"Saving {len(tweets)} tweets...")
+            db.save_tweets(tweets)
+        except TwitterError:
+            logging.error(f"Failed to fetch replies from {screen_name}:")
+            traceback.print_exc()
 
-        tweets, request = fetch.fetch_tweets_at_user(clean_sn)
-        logging.info("Saving ats request...")
-        db.save_request(request)
-        logging.info(f"Saving {len(tweets)} tweets...")
-        db.save_tweets(tweets)
+        try:
+            tweets, request = fetch.fetch_tweets_at_user(clean_sn)
+            logging.info("Saving ats request...")
+            db.save_request(request)
+            logging.info(f"Saving {len(tweets)} tweets...")
+            db.save_tweets(tweets)
+        except TwitterError:
+            logging.error(f"Failed to fetch tweets at {screen_name}:")
+            traceback.print_exc()
 
         logging.info(f"Finished collection for {screen_name}.")
 
