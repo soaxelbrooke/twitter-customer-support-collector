@@ -2,3 +2,4 @@ git+https://github.com/soaxelbrooke/python-twitter.git@master
 psycopg2
 python-dotenv
 toolz
+commonregex
