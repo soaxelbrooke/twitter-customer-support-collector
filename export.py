@@ -41,6 +41,8 @@ CUSTOMER_SUPPORT_SNS = {
     'londonmidland', 'gwrhelp', 'tfl', 'o2'
 }
 
+ANON = True
+
 
 def export_to(fileio):
     """ Writes dataset to provided file path """
@@ -50,23 +52,24 @@ def export_to(fileio):
 
     screen_name_to_id = {}
     replies = defaultdict(list)
-    replies_to = defaultdict(int)
     unseen_screen_names = defaultdict(lambda: len(unseen_screen_names))
     tweet_ids = defaultdict(lambda : len(tweet_ids))
+    tweet_ids[None] = ''
     user_ids = defaultdict(lambda : len(user_ids))
-    header = ['Tweet ID', 'Author ID', 'Inbound', 'Created At', 'Text', 'Response Tweet ID']
+    header = ['tweet_id', 'author_id', 'inbound', 'created_at', 'text', 'response_tweet_id',
+              'in_response_to_tweet_id']
     sn_re = re.compile('(\W@|^@)([a-zA-Z0-9_]+)')
     writer = csv.writer(fileio)
     writer.writerow(header)
 
     rows = list(crs)
+    row_dict = {row[0]: row for row in rows}
 
     for row in rows:
         # Construct screen name to id mapping and add forward links to replies
         screen_name_to_id[row[2].lower()] = row[1]
         if row[5]:
-            replies[row[0]].append(row[5])
-            replies_to[row[5]] = row[0]
+            replies[row[5]].append(row[0])
 
     for row in rows:
         for prefix, sn in sn_re.findall(row[4]):
@@ -85,23 +88,52 @@ def export_to(fileio):
     email_re = re.compile(commonregex.email)
     email_sanitize = lambda text: email_re.sub('__email__', text)
     cc_re = re.compile(commonregex.credit_card)
-    cc_sanitize = lambda text: cc_re.sub('__creditcard__', text)
+    cc_sanitize = lambda text: cc_re.sub('__credit_card__', text)
     btc_re = re.compile(commonregex.btc_address)
     btc_sanitize = lambda text: btc_re.sub('__btc_wallet__', text)
     sanitize = toolz.compose(cc_sanitize, btc_sanitize, sn_sanitize, email_sanitize)
 
-    for row in rows:
-        if row[5] not in replies_to and len(replies[row[0]]) == 0:
-            # Skip tweets with no replies that don't reply to others
-            continue
-
-        tweet_id = tweet_ids[row[0]]
-        author_id = user_ids[row[1]]
+    def write_row(row: list):
+        """ Writes tweet to file if it hasn't been written yet. """
+        if row[0] in written_tweet_ids:
+            return
+        tweet_id = tweet_ids[row[0]] if ANON else row[0]
+        author_id = user_ids[row[1]] if ANON else row[2]
         inbound = row[2].lower() not in CUSTOMER_SUPPORT_SNS
         created_at = row[3]
-        text = sanitize(row[4])
-        response_tweet_ids = ','.join([str(tweet_ids[reply]) for reply in replies[row[0]]])
-        writer.writerow([tweet_id, author_id, inbound, created_at, text, response_tweet_ids])
+        text = sanitize(row[4]) if ANON else row[4]
+        response_tweet_ids = ','.join([str(tweet_ids[reply]) for reply in replies[row[0]]]) \
+            if ANON else ','.join(map(str, replies[row[0]]))
+        respond_to_id = tweet_ids[row[5]] if ANON else row[5]
+        writer.writerow([tweet_id, author_id, inbound, created_at, text, response_tweet_ids,
+                         respond_to_id])
+        written_tweet_ids.add(row[0])
+
+    written_tweet_ids = set()
+
+    def walk_conversations_fowards(row: list):
+        """ Walk tweet conversations forward and writes them to file """
+        write_row(row)
+        for reply in replies[row[0]]:
+            if reply not in row_dict:
+                continue
+            _row = row_dict[reply]
+            write_row(_row)
+            walk_conversations_fowards(_row)
+
+    def walk_conversations_backwards(row: list):
+        """ Walks tweet conversations and writes them to file """
+        write_row(row)
+        if row[5] and row[5] in row_dict:
+            walk_conversations_backwards(row_dict[row[5]])
+
+    for row in rows:
+        if row[2].lower() not in CUSTOMER_SUPPORT_SNS or not row[5] or row[5] not in row_dict:
+            # Skip non-customer support response tweets to start each conversation
+            continue
+
+        walk_conversations_fowards(row)
+        walk_conversations_backwards(row)
 
 
 if __name__ == '__main__':
