@@ -81,7 +81,7 @@ def export_to(fileio):
 
     def replace_sn(sn):
         _sn = sn.group(2).lower()
-        if _sn.startswith('__') and _sn.endswith('__'):
+        if _sn in CUSTOMER_SUPPORT_SNS or _sn.startswith('__') and _sn.endswith('__'):
             return sn.group(1) + sn.group(2)
         return sn.group(1) + str(user_ids[screen_name_to_id[_sn]])
 
@@ -98,8 +98,9 @@ def export_to(fileio):
         """ Writes tweet to file if it hasn't been written yet. """
         if row[0] in written_tweet_ids:
             return
+        is_company = row[2].lower() in CUSTOMER_SUPPORT_SNS
         tweet_id = tweet_ids[row[0]] if ANON else row[0]
-        author_id = user_ids[row[1]] if ANON else row[2]
+        author_id = (row[2] if is_company else user_ids[row[1]]) if ANON else row[2]
         inbound = row[2].lower() not in CUSTOMER_SUPPORT_SNS
         created_at = row[3]
         text = sanitize(row[4] or row[5]) if ANON else row[4] or row[5]
