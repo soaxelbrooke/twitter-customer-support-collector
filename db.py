@@ -51,7 +51,7 @@ def save_tweets(tweets: List[Status]):
     conn = db_conn()
     crs = conn.cursor()
     execute_values(crs, """INSERT INTO tweets (status_id, created_at, data)
-                           VALUES %s ON CONFLICT DO NOTHING;""",
+                           VALUES %s ON CONFLICT (status_id) DO UPDATE SET data = EXCLUDED.data;""",
                    [*map(tweet_to_record, unique_tweets)])
     conn.commit()
 
@@ -150,3 +150,11 @@ def save_inaccessible_tweet_ids(tweet_ids: List[str]):
     crs = conn.cursor()
     execute_values(crs, "INSERT INTO inaccessible_tweets (status_id) VALUES %s",
                    [(status_id, ) for status_id in tweet_ids])
+
+
+def get_truncated_tweets() -> List[int]:
+    """ Finds a list of tweets that have been truncated """
+    conn = db_conn()
+    crs = conn.cursor()
+    crs.execute("SELECT status_id FROM tweets WHERE CAST(data ->> 'truncated' AS boolean);")
+    return [row[0] for row in crs]

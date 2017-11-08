@@ -67,6 +67,17 @@ def main():
         logging.info(f"Saving {len(tweets)} tweets...")
         db.save_tweets(tweets)
 
+    truncated_tweets = db.get_truncated_tweets()
+    try:
+        for batch in toolz.partition_all(100, truncated_tweets):
+            logging.info(f"Fetching {len(batch)} truncated tweets...")
+            tweets = fetch.fetch_tweets_by_id(batch)
+            logging.info(f"Saving {len(tweets)} tweets...")
+            db.save_tweets(tweets)
+    except TwitterError:
+        logging.error(f"Failed to fetch truncated tweets.")
+        traceback.print_exc()
+
     logging.info("Done!")
 
 
