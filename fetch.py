@@ -16,10 +16,12 @@ ApiRequest = NamedTuple('ApiRequest', [
 
 def get_api() -> Api:
     """ Memoized constructor for API that pulls secrets from env """
-    return Api(consumer_key=os.environ['TWITTER_CONSUMER_KEY'],
-               consumer_secret=os.environ['TWITTER_CONSUMER_SECRET'],
-               access_token_key=os.environ['TWITTER_ACCESS_TOKEN'],
-               access_token_secret=os.environ['TWITTER_ACCESS_SECRET'])
+    api = Api(consumer_key=os.environ['TWITTER_CONSUMER_KEY'],
+              consumer_secret=os.environ['TWITTER_CONSUMER_SECRET'],
+              access_token_key=os.environ['TWITTER_ACCESS_TOKEN'],
+              access_token_secret=os.environ['TWITTER_ACCESS_SECRET'])
+    api.tweet_mode = 'extended'
+    return api
 
 
 def fetch_tweets_at_user(screen_name: str, since: datetime=datetime(1999, 1, 1)
