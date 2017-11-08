@@ -69,8 +69,10 @@ def main():
 
     truncated_tweets = db.get_truncated_tweets()
     logging.info(f"Found {len(truncated_tweets)} truncated tweets that need re-fetching.")
+    remaining_fetches = 250 - len(orphan_batches)
+    truncate_batches = [*toolz.take(remaining_fetches, toolz.partition_all(100, truncated_tweets))]
     try:
-        for batch in toolz.partition_all(100, truncated_tweets):
+        for batch in truncate_batches:
             logging.info(f"Fetching {len(batch)} truncated tweets...")
             tweets = fetch.fetch_tweets_by_id(batch)
             logging.info(f"Saving {len(tweets)} tweets...")
