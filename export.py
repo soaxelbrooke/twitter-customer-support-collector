@@ -16,6 +16,7 @@ EXPORT_QUERY = """
       data #>> '{user,screen_name}', 
       data ->>'created_at',
       data ->> 'text',
+      data ->> 'full_text',
       CAST(data ->> 'in_reply_to_status_id' AS BIGINT)
     FROM tweets;
 """
@@ -68,11 +69,11 @@ def export_to(fileio):
     for row in rows:
         # Construct screen name to id mapping and add forward links to replies
         screen_name_to_id[row[2].lower()] = row[1]
-        if row[5]:
-            replies[row[5]].append(row[0])
+        if row[6]:
+            replies[row[6]].append(row[0])
 
     for row in rows:
-        for prefix, sn in sn_re.findall(row[4]):
+        for prefix, sn in sn_re.findall(row[4] or row[5]):
             _sn = sn.lower()
             if _sn not in screen_name_to_id:
                 screen_name_to_id[_sn] = unseen_screen_names[_sn]
@@ -101,10 +102,10 @@ def export_to(fileio):
         author_id = user_ids[row[1]] if ANON else row[2]
         inbound = row[2].lower() not in CUSTOMER_SUPPORT_SNS
         created_at = row[3]
-        text = sanitize(row[4]) if ANON else row[4]
+        text = sanitize(row[4] or row[5]) if ANON else row[4] or row[5]
         response_tweet_ids = ','.join([str(tweet_ids[reply]) for reply in replies[row[0]]]) \
             if ANON else ','.join(map(str, replies[row[0]]))
-        respond_to_id = tweet_ids[row[5]] if ANON else row[5]
+        respond_to_id = tweet_ids[row[6]] if ANON else row[6]
         writer.writerow([tweet_id, author_id, inbound, created_at, text, response_tweet_ids,
                          respond_to_id])
         written_tweet_ids.add(row[0])
@@ -124,11 +125,11 @@ def export_to(fileio):
     def walk_conversations_backwards(row: list):
         """ Walks tweet conversations and writes them to file """
         write_row(row)
-        if row[5] and row[5] in row_dict:
-            walk_conversations_backwards(row_dict[row[5]])
+        if row[6] and row[6] in row_dict:
+            walk_conversations_backwards(row_dict[row[6]])
 
     for row in rows:
-        if row[2].lower() not in CUSTOMER_SUPPORT_SNS or not row[5] or row[5] not in row_dict:
+        if row[2].lower() not in CUSTOMER_SUPPORT_SNS or not row[6] or row[6] not in row_dict:
             # Skip non-customer support response tweets to start each conversation
             continue
 
