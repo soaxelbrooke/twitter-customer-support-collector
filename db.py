@@ -158,3 +158,14 @@ def get_truncated_tweets() -> List[int]:
     crs = conn.cursor()
     crs.execute("SELECT status_id FROM tweets WHERE CAST(data ->> 'truncated' AS boolean);")
     return [row[0] for row in crs]
+
+
+def delete_tweets(ids: List[str]):
+    """ Deletes tweets for these tweet status IDs """
+    conn = db_conn()
+    crs = conn.cursor()
+
+    array_ids = ', '.join(f"'{_id}'" for _id in ids)
+    crs.execute(f"DELETE FROM tweets WHERE status_id = ANY(ARRAY[{array_ids}]);")
+
+    conn.commit()

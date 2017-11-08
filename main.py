@@ -72,11 +72,20 @@ def main():
     remaining_fetches = 250 - len(orphan_batches)
     truncate_batches = [*toolz.take(remaining_fetches, toolz.partition_all(100, truncated_tweets))]
     try:
-        for batch in truncate_batches:
-            logging.info(f"Fetching {len(batch)} truncated tweets...")
-            tweets = fetch.fetch_tweets_by_id(batch)
-            logging.info(f"Saving {len(tweets)} tweets...")
-            db.save_tweets(tweets)
+        for tweet_ids in truncate_batches:
+            logging.info(f"Fetching {len(tweet_ids)} truncated tweets...")
+            tweets = fetch.fetch_tweets_by_id(tweet_ids)
+            inaccessible_tweets = {*map(int, tweet_ids)}.difference({int(t.id) for t in tweets})
+            if inaccessible_tweets:
+                logging.info(f"Deleting {len(inaccessible_tweets)} missing tweets...")
+                db.delete_tweets(list(map(str, inaccessible_tweets)))
+
+            if tweets:
+                logging.info(f"Saving {len(tweets)} tweets...")
+                db.save_tweets(tweets)
+            else:
+                logging.info('No tweetse to save.')
+
     except TwitterError:
         logging.error(f"Failed to fetch truncated tweets.")
         traceback.print_exc()
