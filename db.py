@@ -162,7 +162,8 @@ def get_truncated_tweets() -> List[int]:
     """ Finds a list of tweets that have been truncated """
     conn = db_conn()
     crs = conn.cursor()
-    crs.execute("SELECT status_id FROM tweets WHERE CAST(data ->> 'truncated' AS boolean);")
+    crs.execute("""SELECT status_id FROM tweets WHERE CAST(data ->> 'truncated' AS boolean)
+                   OR data ->> 'text' ILIKE '%… https://t.co/__________';""")
     return [row[0] for row in crs]
 
 
