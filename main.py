@@ -82,7 +82,7 @@ def main():
 
             if tweets:
                 logging.info(f"Saving {len(tweets)} tweets...")
-                db.save_tweets(tweets)
+                db.save_tweets(tweets, overwrite=True)
             else:
                 logging.info('No tweetse to save.')
 

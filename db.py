@@ -44,14 +44,20 @@ def tweet_to_record(tweet: Status) -> tuple:
     return str(tweet.id), datetime.fromtimestamp(tweet.created_at_in_seconds), json_string
 
 
-def save_tweets(tweets: List[Status]):
+def save_tweets(tweets: List[Status], overwrite=False):
     """ Saves a list of tweets to postgres """
     save_users([t.user for t in tweets])
     unique_tweets = [*toolz.unique(tweets, key=lambda t: t.id)]
     conn = db_conn()
     crs = conn.cursor()
-    execute_values(crs, """INSERT INTO tweets (status_id, created_at, data)
-                           VALUES %s ON CONFLICT (status_id) DO UPDATE SET data = EXCLUDED.data;""",
+
+    if overwrite:
+        conflict_clause = "(status_id) DO UPDATE SET data = EXCLUDED.data"
+    else:
+        conflict_clause = "DO NOTHING"
+
+    execute_values(crs, f"""INSERT INTO tweets (status_id, created_at, data)
+                            VALUES %s ON CONFLICT {conflict_clause};""",
                    [*map(tweet_to_record, unique_tweets)])
     conn.commit()
 
