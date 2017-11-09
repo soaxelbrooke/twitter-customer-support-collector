@@ -90,7 +90,8 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
     """
     logging.info(f"Prioritizing {len(screen_names)} screen names for scrape...")
     conn = db_conn()
-    daily_vol_estimates = {sn: estimate_daily_volume(conn, sn) for sn in screen_names}
+    raw_estimates = estimate_daily_volume(conn)
+    daily_vol_estimates = {sn: raw_estimates.get(sn, 1.0) for sn in screen_names}
     logging.info("Fetching days since collection for each app...")
     collect_age = {sn: days_since_collect(conn, sn) for sn in screen_names}
 
@@ -103,18 +104,22 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
     return sorted(screen_names, key=lambda sn: -inferred_missing[sn])
 
 
-def estimate_daily_volume(conn, screen_name: str) -> float:
+def estimate_daily_volume(conn) -> Dict[str, float]:
     """ Estimate the number of tweets an account gets a day """
-    logging.info(f"Estimating daily volume for {screen_name}...")
+    logging.info(f"Estimating daily volume...")
     query = """
-        WITH last_scrape AS (SELECT max(created_at) AS last FROM requests WHERE screen_name=%(sn)s)
-        SELECT count(*) / 3.0 AS daily_tweets FROM tweets, last_scrape
-        WHERE tweets.created_at > (last_scrape.last - INTERVAL '3 days')
-          AND tweets.data #>> '{user,screen_name}' ILIKE %(sn)s;
+        WITH last_scrape AS (
+          SELECT screen_name, max(created_at) AS last FROM requests GROUP BY screen_name
+        ), sn_tweets AS (
+          SELECT data #>> '{user,screen_name}' as sn, created_at FROM tweets 
+          ORDER BY created_at DESC LIMIT 200000
+        ) SELECT screen_name, count(*) / 3.0 AS daily_tweets 
+        FROM last_scrape JOIN sn_tweets ON sn ILIKE screen_name 
+        WHERE created_at > last_scrape.last - INTERVAL '3 days' GROUP BY screen_name;  
     """
     crs = conn.cursor()
-    crs.execute(query, {'sn': screen_name.strip('@').lower()})
-    return max([float(crs.fetchall()[0].daily_tweets), 1.0])
+    crs.execute(query)
+    return {sn: daily_count for sn, daily_count in crs}
 
 
 def days_since_collect(conn, screen_name: str) -> float:
