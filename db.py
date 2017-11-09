@@ -91,6 +91,7 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
     logging.info(f"Prioritizing {len(screen_names)} screen names for scrape...")
     conn = db_conn()
     daily_vol_estimates = {sn: estimate_daily_volume(conn, sn) for sn in screen_names}
+    logging.info("Fetching days since collection for each app...")
     collect_age = {sn: days_since_collect(conn, sn) for sn in screen_names}
 
     inferred_missing = {sn: collect_age.get(sn, 100) * daily_vol_estimates.get(sn, 1)
