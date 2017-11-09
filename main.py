@@ -24,6 +24,7 @@ def main():
         datefmt='%Y-%m-%d,%H:%M:%S',
         level=getattr(logging, os.environ.get('LOG_LEVEL', 'INFO')))
 
+    logging.info("Starting twitter scrape...")
     monitored_screen_names = os.environ['MONITORED_SCREEN_NAMES'].split(',')
     screen_names_to_collect = db.prioritize_by_uncollected(monitored_screen_names)[:API_LIMIT]
     logging.info(f'Collecting the following screen names: {", ".join(screen_names_to_collect)}')
