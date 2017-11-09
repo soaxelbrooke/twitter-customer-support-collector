@@ -88,6 +88,7 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
     """ Prioritizes by inferring how many tweets have happened since the last scrape for each
         screen name.
     """
+    logging.info(f"Prioritizing {len(screen_names)} screen names for scrape...")
     conn = db_conn()
     daily_vol_estimates = {sn: estimate_daily_volume(conn, sn) for sn in screen_names}
     collect_age = {sn: days_since_collect(conn, sn) for sn in screen_names}
@@ -103,6 +104,7 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
 
 def estimate_daily_volume(conn, screen_name: str) -> float:
     """ Estimate the number of tweets an account gets a day """
+    logging.info(f"Estimating daily volume for {screen_name}...")
     query = """
         WITH last_scrape AS (SELECT max(created_at) AS last FROM requests WHERE screen_name=%(sn)s)
         SELECT count(*) / 3.0 AS daily_tweets FROM tweets, last_scrape
