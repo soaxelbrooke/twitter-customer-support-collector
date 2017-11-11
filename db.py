@@ -91,7 +91,9 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
     logging.info(f"Prioritizing {len(screen_names)} screen names for scrape...")
     conn = db_conn()
     query = """
-        WITH daily_counts AS (
+        WITH max_request AS (
+          SELECT max(created_at) AS max_created_at FROM requests
+        ), daily_counts AS (
           SELECT
             lower(data #>> '{user,screen_name}') AS screen_name,
             EXTRACT(EPOCH FROM max(created_at) - min(created_at)) / 86400.0 AS tweet_period,
@@ -102,9 +104,9 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
         ), last_scrapes AS (
           SELECT
             screen_name,
-            EXTRACT(EPOCH FROM now() - max(created_at)) / 86400.0 AS scrape_age
-          FROM requests
-          GROUP BY screen_name
+            EXTRACT(EPOCH FROM max_created_at - max(created_at)) / 86400.0 AS scrape_age
+          FROM requests, max_request
+          GROUP BY screen_name, max_created_at
         )
         SELECT
           screen_name,
