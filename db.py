@@ -90,19 +90,39 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
     """
     logging.info(f"Prioritizing {len(screen_names)} screen names for scrape...")
     conn = db_conn()
-    raw_estimates = estimate_daily_volume(conn)
-    daily_vol_estimates = {sn: raw_estimates.get(sn, 1.0) for sn in screen_names}
-    logging.info("Fetching days since collection for each app...")
-    collect_age = {sn: days_since_collect(conn, sn) for sn in screen_names}
+    query = """
+        WITH daily_counts AS (
+          SELECT
+            lower(data #>> '{user,screen_name}') AS screen_name,
+            EXTRACT(EPOCH FROM max(created_at) - min(created_at)) / 86400.0 AS tweet_period,
+            count(*) AS tweet_count
+          FROM tweets
+          WHERE created_at > now() - INTERVAL '1 week'
+          GROUP BY 1
+        ), last_scrapes AS (
+          SELECT
+            screen_name,
+            EXTRACT(EPOCH FROM now() - max(created_at)) / 86400.0 AS scrape_age
+          FROM requests
+          GROUP BY screen_name
+        )
+        SELECT
+          screen_name,
+          abs(scrape_age * tweet_count / tweet_period) AS missing_tweets,
+          scrape_age,
+          tweet_count,
+          tweet_period
+        FROM daily_counts RIGHT JOIN last_scrapes USING (screen_name)
+        ORDER BY 2 DESC;
+    """
+    crs = conn.cursor()
+    crs.execute(query)
 
-    inferred_missing = {sn: collect_age.get(sn, 100) * daily_vol_estimates.get(sn, 1)
-                        for sn in screen_names}
+    priortized_sns = [row[0] for row in crs]
 
-    for sn, missing in sorted(inferred_missing.items(), key=lambda p: -p[1]):
-        logging.info(f"{sn} missing: {missing}")
+    found_sns = set(priortized_sns)
 
-    return sorted(screen_names, key=lambda sn: -inferred_missing[sn])
-
+    return [sn for sn in screen_names if sn not in found_sns] + priortized_sns
 
 def estimate_daily_volume(conn) -> Dict[str, float]:
     """ Estimate the number of tweets an account gets a day """
