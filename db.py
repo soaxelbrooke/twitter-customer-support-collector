@@ -110,7 +110,7 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
         )
         SELECT
           screen_name,
-          abs(scrape_age * tweet_count / tweet_period) AS missing_tweets,
+          abs(scrape_age * tweet_count / (tweet_period + 0.0001)) AS missing_tweets,
           scrape_age,
           tweet_count,
           tweet_period
