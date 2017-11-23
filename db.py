@@ -1,10 +1,12 @@
 import logging
 from datetime import datetime
 from typing import List, Dict
+import json
 
 import psycopg2
 import toolz
 from psycopg2.extras import NamedTupleConnection, execute_values
+from sentiment_neuron.sentiment_analyzer import SentimentAnalyzer
 from twitter import Status, User
 
 from fetch import ApiRequest
@@ -65,12 +67,38 @@ def tweet_to_record(tweet: Status) -> tuple:
     return str(tweet.id), datetime.fromtimestamp(tweet.created_at_in_seconds), json_string
 
 
+@toolz.memoize
+def sentiment_analyzer():
+    return SentimentAnalyzer()
+
+
+def add_sentiment_to_records(records):
+    """ Adds sentiment to records before insertion into postgres """
+    texts = []
+    for tweet_id, created_at, json_string in records:
+        tweet = json.loads(json_string)
+        texts.append(tweet.get('text') or tweet.get('full_text'))
+
+    sentiments = sentiment_analyzer().analyze(texts)
+
+    new_records = []
+    for (tweet_id, created_at, json_string), sentiment in zip(records, sentiments):
+        tweet = json.loads(json_string)
+        tweet['sentiment'] = sentiment
+        new_records.append((tweet_id, created_at, json.dumps(tweet)))
+
+    return new_records
+
+
 def save_tweets(tweets: List[Status], overwrite=False, analyze_sentiment: bool=True):
     """ Saves a list of tweets to postgres """
     save_users([t.user for t in tweets])
     unique_tweets = [*toolz.unique(tweets, key=lambda t: t.id)]
     conn = db_conn()
     crs = conn.cursor()
+
+    records = [*map(tweet_to_record, unique_tweets)]
+    records = add_sentiment_to_records(records)
 
     if overwrite:
         conflict_clause = "(status_id) DO UPDATE SET data = EXCLUDED.data"
@@ -79,7 +107,7 @@ def save_tweets(tweets: List[Status], overwrite=False, analyze_sentiment: bool=T
 
     execute_values(crs, f"""INSERT INTO tweets (status_id, created_at, data)
                             VALUES %s ON CONFLICT {conflict_clause};""",
-                   [*map(tweet_to_record, unique_tweets)])
+                   records)
     conn.commit()
 
 
@@ -146,6 +174,7 @@ def prioritize_by_uncollected(screen_names: List[str]) -> List[str]:
     found_sns = set(priortized_sns)
 
     return [sn for sn in screen_names if sn not in found_sns] + priortized_sns
+
 
 def estimate_daily_volume(conn) -> Dict[str, float]:
     """ Estimate the number of tweets an account gets a day """
