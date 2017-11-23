@@ -47,7 +47,7 @@ def main():
             logging.info("Saving replies request...")
             db.save_request(request)
             logging.info(f"Saving {len(new_tweets)} tweets...")
-            db.save_tweets(new_tweets, sentiment_analyzer)
+            db.save_tweets(new_tweets, sentiment_analyzer=sentiment_analyzer)
             logging.info("Finished saving replies.")
         except TwitterError:
             logging.error(f"Failed to fetch replies from {screen_name}:")
@@ -61,7 +61,7 @@ def main():
             logging.info("Saving ats request...")
             db.save_request(request)
             logging.info(f"Saving {len(new_tweets)} tweets...")
-            db.save_tweets(new_tweets, sentiment_analyzer)
+            db.save_tweets(new_tweets, sentiment_analyzer=sentiment_analyzer)
         except TwitterError:
             logging.error(f"Failed to fetch tweets at {screen_name}:")
             traceback.print_exc()
@@ -79,7 +79,7 @@ def main():
         logging.info(f"Saving {len(inaccessible_tweets)} inaccessible tweets...")
         db.save_inaccessible_tweet_ids(list(inaccessible_tweets))
         logging.info(f"Saving {len(tweets)} tweets...")
-        db.save_tweets(tweets, sentiment_analyzer)
+        db.save_tweets(tweets, sentiment_analyzer=sentiment_analyzer)
 
     truncated_tweets = db.get_truncated_tweets()
     logging.info(f"Found {len(truncated_tweets)} truncated tweets that need re-fetching.")

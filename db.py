@@ -84,8 +84,7 @@ def add_sentiment_to_records(analyzer, records):
     return new_records
 
 
-def save_tweets(tweets: List[Status], overwrite=False, analyze_sentiment: bool=True,
-                sentiment_analyzer=None):
+def save_tweets(tweets: List[Status], overwrite=False, sentiment_analyzer=None):
     """ Saves a list of tweets to postgres """
     save_users([t.user for t in tweets])
     unique_tweets = [*toolz.unique(tweets, key=lambda t: t.id)]
