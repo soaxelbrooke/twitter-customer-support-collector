@@ -37,7 +37,7 @@ def main():
 
         try:
             tweets, request = fetch.fetch_replies_from_user(clean_sn, )
-            old_tweet_ids = set(db.get_existing_tweet_ids([t.id for t in tweets]))
+            old_tweet_ids = set(db.get_existing_tweet_ids([str(t.id) for t in tweets]))
             new_tweets = [t for t in tweets if t.id not in old_tweet_ids]
             logging.info("Saving replies request...")
             db.save_request(request)
@@ -49,7 +49,7 @@ def main():
 
         try:
             tweets, request = fetch.fetch_tweets_at_user(clean_sn, since=last_scraped_at)
-            old_tweet_ids = set(db.get_existing_tweet_ids([t.id for t in tweets]))
+            old_tweet_ids = set(db.get_existing_tweet_ids([str(t.id) for t in tweets]))
             new_tweets = [t for t in tweets if t.id not in old_tweet_ids]
             logging.info("Saving ats request...")
             db.save_request(request)
