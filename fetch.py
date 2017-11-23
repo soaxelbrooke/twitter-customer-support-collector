@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 from typing import Optional, List, NamedTuple, Tuple
 
+from retrying import retry
 from twitter import Api, Status
 
 MAX_FETCH_COUNT = 100
@@ -25,6 +26,7 @@ def get_api() -> Api:
     return api
 
 
+@retry(stop_max_attempt_number=5)
 def fetch_tweets_at_user(screen_name: str, since: datetime=datetime(1999, 1, 1)
                          ) -> Tuple[List[Status], ApiRequest]:
     """ Fetches the most recent 100 tweets at the provided screen name """
@@ -33,6 +35,7 @@ def fetch_tweets_at_user(screen_name: str, since: datetime=datetime(1999, 1, 1)
                          since=since.strftime('%Y-%m-%d')), ApiRequest(screen_name, 'get_ats')
 
 
+@retry(stop_max_attempt_number=5)
 def fetch_replies_from_user(screen_name: str, since_id: Optional[str]=None
                             ) -> Tuple[List[Status], ApiRequest]:
     """ Fetches the most recent 100 replies from the provided screen name """
@@ -41,6 +44,7 @@ def fetch_replies_from_user(screen_name: str, since_id: Optional[str]=None
                                count=MAX_FETCH_COUNT), ApiRequest(screen_name, 'get_replies')
 
 
+@retry(stop_max_attempt_number=5)
 def fetch_tweets_by_id(tweet_ids: List[int]) -> List[Status]:
     """ Fetches a batch of tweets by ID from the statuses/lookup endpoint """
     return get_api().LookupStatuses(tweet_ids)
