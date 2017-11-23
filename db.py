@@ -94,6 +94,7 @@ def save_tweets(tweets: List[Status], overwrite=False, analyze_sentiment: bool=T
 
     records = [*map(tweet_to_record, unique_tweets)]
     if sentiment_analyzer is not None:
+        logging.info(f"Calculating sentiment for {len(records)} records...")
         records = add_sentiment_to_records(sentiment_analyzer, records)
 
     if overwrite:
