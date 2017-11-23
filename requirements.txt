@@ -3,3 +3,4 @@ psycopg2
 python-dotenv
 toolz
 commonregex
+git+https://github.com/soaxelbrooke/generating-reviews-discovering-sentiment.git@master

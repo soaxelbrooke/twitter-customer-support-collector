@@ -32,10 +32,11 @@ def main():
 
     for screen_name in screen_names_to_collect:
         clean_sn = screen_name.strip('@').lower()
+        last_scraped_at = db.last_scraped_at(clean_sn)
         logging.info(f"Collecting tweets for {screen_name}...")
 
         try:
-            tweets, request = fetch.fetch_replies_from_user(clean_sn)
+            tweets, request = fetch.fetch_replies_from_user(clean_sn, )
             logging.info("Saving replies request...")
             db.save_request(request)
             logging.info(f"Saving {len(tweets)} tweets...")
@@ -45,7 +46,7 @@ def main():
             traceback.print_exc()
 
         try:
-            tweets, request = fetch.fetch_tweets_at_user(clean_sn)
+            tweets, request = fetch.fetch_tweets_at_user(clean_sn, since=last_scraped_at)
             logging.info("Saving ats request...")
             db.save_request(request)
             logging.info(f"Saving {len(tweets)} tweets...")

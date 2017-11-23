@@ -28,13 +28,26 @@ def user_to_record(user: User) -> tuple:
     return str(user.id), user.AsJsonString().replace('\u0000', '')
 
 
+def last_scraped_at(screen_name: str) -> datetime:
+    """ Get the last time the screen name was scraped from the database. """
+    conn = db_conn()
+    crs = conn.cursor()
+    query = 'SELECT created_at FROM requests WHERE screen_name=%s ORDER BY created_at DESC LIMIT 1'
+    crs.execute(query, (screen_name, ))
+    results = crs.fetchall()
+    if len(results) < 1:
+        return datetime(1999, 1, 1)
+    else:
+        return results[0][0]
+
+
 def save_users(users: List[User]):
     """ Saves users pulled from tweets """
     unique_users = [*toolz.unique(users, key=lambda u: u.id)]
     conn = db_conn()
     crs = conn.cursor()
-    execute_values(crs, """INSERT INTO users (user_id, data) VALUES %s ON CONFLICT DO NOTHING;""",
-                   [*map(user_to_record, unique_users)])
+    query = """INSERT INTO users (user_id, data) VALUES %s ON CONFLICT DO NOTHING;"""
+    execute_values(crs, query, [*map(user_to_record, unique_users)])
     conn.commit()
 
 
@@ -44,7 +57,7 @@ def tweet_to_record(tweet: Status) -> tuple:
     return str(tweet.id), datetime.fromtimestamp(tweet.created_at_in_seconds), json_string
 
 
-def save_tweets(tweets: List[Status], overwrite=False):
+def save_tweets(tweets: List[Status], overwrite=False, analyze_sentiment: bool=True):
     """ Saves a list of tweets to postgres """
     save_users([t.user for t in tweets])
     unique_tweets = [*toolz.unique(tweets, key=lambda t: t.id)]
