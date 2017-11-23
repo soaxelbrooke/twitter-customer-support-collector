@@ -6,7 +6,7 @@ import json
 import psycopg2
 import toolz
 from psycopg2.extras import NamedTupleConnection, execute_values
-from sentiment_neuron.sentiment_analyzer import SentimentAnalyzer
+# from sentiment_neuron.sentiment_analyzer import SentimentAnalyzer
 from twitter import Status, User
 
 from fetch import ApiRequest
@@ -67,9 +67,9 @@ def tweet_to_record(tweet: Status) -> tuple:
     return str(tweet.id), datetime.fromtimestamp(tweet.created_at_in_seconds), json_string
 
 
-@toolz.memoize
-def sentiment_analyzer():
-    return SentimentAnalyzer()
+# @toolz.memoize
+# def sentiment_analyzer():
+#     return SentimentAnalyzer()
 
 
 def add_sentiment_to_records(records):
