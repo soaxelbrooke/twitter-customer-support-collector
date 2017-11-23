@@ -98,7 +98,7 @@ def save_tweets(tweets: List[Status], overwrite=False, analyze_sentiment: bool=T
     crs = conn.cursor()
 
     records = [*map(tweet_to_record, unique_tweets)]
-    records = add_sentiment_to_records(records)
+    # records = add_sentiment_to_records(records)
 
     if overwrite:
         conflict_clause = "(status_id) DO UPDATE SET data = EXCLUDED.data"
