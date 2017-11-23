@@ -41,6 +41,14 @@ def last_scraped_at(screen_name: str) -> datetime:
         return results[0][0]
 
 
+def get_existing_tweet_ids(tweet_ids: List[str]) -> List[str]:
+    """ Fetches list of tweet IDs that are already in the database """
+    conn = db_conn()
+    crs = conn.cursor()
+    crs.execute('SELECT status_id FROM tweets WHERE status_id=ANY(%s)', (tweet_ids,))
+    return [row[0] for row in crs]
+
+
 def save_users(users: List[User]):
     """ Saves users pulled from tweets """
     unique_users = [*toolz.unique(users, key=lambda u: u.id)]
