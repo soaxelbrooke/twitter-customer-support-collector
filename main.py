@@ -44,6 +44,7 @@ def main():
             db.save_request(request)
             logging.info(f"Saving {len(new_tweets)} tweets...")
             db.save_tweets(new_tweets)
+            logging.info("Finished saving replies.")
         except TwitterError:
             logging.error(f"Failed to fetch replies from {screen_name}:")
             traceback.print_exc()
