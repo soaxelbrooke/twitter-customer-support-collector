@@ -92,7 +92,7 @@ def save_tweets(tweets: List[Status], overwrite=False, sentiment_analyzer=None):
     crs = conn.cursor()
 
     records = [*map(tweet_to_record, unique_tweets)]
-    if sentiment_analyzer is not None:
+    if sentiment_analyzer is not None and len(records) > 0:
         logging.info(f"Calculating sentiment for {len(records)} records...")
         records = add_sentiment_to_records(sentiment_analyzer, records)
 
