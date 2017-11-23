@@ -73,7 +73,7 @@ def add_sentiment_to_records(analyzer, records):
         tweet = json.loads(json_string)
         texts.append(tweet.get('text') or tweet.get('full_text'))
 
-    sentiments = analyzer.analyze(texts)
+    sentiments = [*map(float, analyzer.analyze(texts))]
 
     new_records = []
     for (tweet_id, created_at, json_string), sentiment in zip(records, sentiments):
