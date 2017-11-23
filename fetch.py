@@ -19,7 +19,8 @@ def get_api() -> Api:
     api = Api(consumer_key=os.environ['TWITTER_CONSUMER_KEY'],
               consumer_secret=os.environ['TWITTER_CONSUMER_SECRET'],
               access_token_key=os.environ['TWITTER_ACCESS_TOKEN'],
-              access_token_secret=os.environ['TWITTER_ACCESS_SECRET'])
+              access_token_secret=os.environ['TWITTER_ACCESS_SECRET'],
+              timeout=10)
     api.tweet_mode = 'extended'
     return api
 
