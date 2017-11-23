@@ -6,7 +6,6 @@ import json
 import psycopg2
 import toolz
 from psycopg2.extras import NamedTupleConnection, execute_values
-from sentiment_neuron.sentiment_analyzer import SentimentAnalyzer
 from twitter import Status, User
 
 from fetch import ApiRequest
@@ -67,19 +66,14 @@ def tweet_to_record(tweet: Status) -> tuple:
     return str(tweet.id), datetime.fromtimestamp(tweet.created_at_in_seconds), json_string
 
 
-@toolz.memoize
-def sentiment_analyzer():
-    return SentimentAnalyzer()
-
-
-def add_sentiment_to_records(records):
+def add_sentiment_to_records(analyzer, records):
     """ Adds sentiment to records before insertion into postgres """
     texts = []
     for tweet_id, created_at, json_string in records:
         tweet = json.loads(json_string)
         texts.append(tweet.get('text') or tweet.get('full_text'))
 
-    sentiments = sentiment_analyzer().analyze(texts)
+    sentiments = analyzer.analyze(texts)
 
     new_records = []
     for (tweet_id, created_at, json_string), sentiment in zip(records, sentiments):
@@ -90,7 +84,8 @@ def add_sentiment_to_records(records):
     return new_records
 
 
-def save_tweets(tweets: List[Status], overwrite=False, analyze_sentiment: bool=True):
+def save_tweets(tweets: List[Status], overwrite=False, analyze_sentiment: bool=True,
+                sentiment_analyzer=None):
     """ Saves a list of tweets to postgres """
     save_users([t.user for t in tweets])
     unique_tweets = [*toolz.unique(tweets, key=lambda t: t.id)]
@@ -98,7 +93,8 @@ def save_tweets(tweets: List[Status], overwrite=False, analyze_sentiment: bool=T
     crs = conn.cursor()
 
     records = [*map(tweet_to_record, unique_tweets)]
-    records = add_sentiment_to_records(records)
+    if sentiment_analyzer is not None:
+        records = add_sentiment_to_records(sentiment_analyzer, records)
 
     if overwrite:
         conflict_clause = "(status_id) DO UPDATE SET data = EXCLUDED.data"

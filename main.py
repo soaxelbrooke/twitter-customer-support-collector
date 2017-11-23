@@ -4,6 +4,7 @@ import traceback
 
 import toolz
 from dotenv import load_dotenv
+from sentiment_neuron.sentiment_analyzer import SentimentAnalyzer
 from twitter import TwitterError
 
 import fetch
@@ -24,6 +25,9 @@ def main():
         datefmt='%Y-%m-%d,%H:%M:%S',
         level=getattr(logging, os.environ.get('LOG_LEVEL', 'INFO')))
 
+    logging.info("Loading sentiment analyzer...")
+    sentiment_analyzer = SentimentAnalyzer()
+
     logging.info("Starting twitter scrape...")
     monitored_screen_names = [sn.strip('@').lower()
                               for sn in os.environ['MONITORED_SCREEN_NAMES'].split(',')]
@@ -43,7 +47,7 @@ def main():
             logging.info("Saving replies request...")
             db.save_request(request)
             logging.info(f"Saving {len(new_tweets)} tweets...")
-            db.save_tweets(new_tweets)
+            db.save_tweets(new_tweets, sentiment_analyzer)
             logging.info("Finished saving replies.")
         except TwitterError:
             logging.error(f"Failed to fetch replies from {screen_name}:")
@@ -57,7 +61,7 @@ def main():
             logging.info("Saving ats request...")
             db.save_request(request)
             logging.info(f"Saving {len(new_tweets)} tweets...")
-            db.save_tweets(new_tweets)
+            db.save_tweets(new_tweets, sentiment_analyzer)
         except TwitterError:
             logging.error(f"Failed to fetch tweets at {screen_name}:")
             traceback.print_exc()
@@ -75,7 +79,7 @@ def main():
         logging.info(f"Saving {len(inaccessible_tweets)} inaccessible tweets...")
         db.save_inaccessible_tweet_ids(list(inaccessible_tweets))
         logging.info(f"Saving {len(tweets)} tweets...")
-        db.save_tweets(tweets)
+        db.save_tweets(tweets, sentiment_analyzer)
 
     truncated_tweets = db.get_truncated_tweets()
     logging.info(f"Found {len(truncated_tweets)} truncated tweets that need re-fetching.")
@@ -92,7 +96,7 @@ def main():
 
             if tweets:
                 logging.info(f"Saving {len(tweets)} tweets...")
-                db.save_tweets(tweets, overwrite=True)
+                db.save_tweets(tweets, overwrite=True, sentiment_analyzer=sentiment_analyzer)
             else:
                 logging.info('No tweetse to save.')
 
