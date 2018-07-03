@@ -52,12 +52,23 @@ def get_existing_tweet_ids(tweet_ids: List[str]) -> List[str]:
 
 def save_users(users: List[User]):
     """ Saves users pulled from tweets """
+    query = """INSERT INTO users (user_id, data) VALUES %s ON CONFLICT DO NOTHING;"""
     unique_users = [*toolz.unique(users, key=lambda u: u.id)]
     conn = db_conn()
-    crs = conn.cursor()
-    query = """INSERT INTO users (user_id, data) VALUES %s ON CONFLICT DO NOTHING;"""
-    execute_values(crs, query, [*map(user_to_record, unique_users)])
-    conn.commit()
+    try:
+        crs = conn.cursor()
+        execute_values(crs, query, [*map(user_to_record, unique_users)])
+        conn.commit()
+    except psycopg2.DataError:
+        conn.rollback()
+        crs = conn.cursor()
+        for user in unique_users:
+            try:
+                crs.execute(query, user_to_record(user))
+                conn.commit()
+            except psycopg2.DataError:
+                logging.error('Failed to insert user {}, giving up on them.'.format(user))
+            
 
 
 def tweet_to_record(tweet: Status) -> tuple:
