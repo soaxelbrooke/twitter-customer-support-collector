@@ -217,6 +217,7 @@ def get_orphaned_tweets() -> List[int]:
         WHERE replies.data->>'in_reply_to_status_id' IS NOT NULL 
           AND requests.data IS NULL
           AND inaccessible_tweets.status_id IS NULL
+          AND replies.created_at > (now() - interval '1 day')
         LIMIT 25000;
     """
 
