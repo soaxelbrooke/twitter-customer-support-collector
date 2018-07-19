@@ -99,7 +99,7 @@ def export_to(fileio):
         """ Writes tweet to file if it hasn't been written yet. """
         if row[0] in written_tweet_ids:
             return
-        is_company = row[2].lower() in CUSTOMER_SUPPORT_SNS
+        is_company = row[2] is not None and row[2].lower() in CUSTOMER_SUPPORT_SNS
         tweet_id = tweet_ids[row[0]] if ANON else row[0]
         author_id = (row[2] if is_company else user_ids[row[1]]) if ANON else row[2]
         inbound = (row[2] is None) or (row[2].lower() not in CUSTOMER_SUPPORT_SNS)
