@@ -102,7 +102,7 @@ def export_to(fileio):
         is_company = row[2].lower() in CUSTOMER_SUPPORT_SNS
         tweet_id = tweet_ids[row[0]] if ANON else row[0]
         author_id = (row[2] if is_company else user_ids[row[1]]) if ANON else row[2]
-        inbound = row[2].lower() not in CUSTOMER_SUPPORT_SNS
+        inbound = (row[2] is None) or (row[2].lower() not in CUSTOMER_SUPPORT_SNS)
         created_at = row[3]
         text = sanitize(row[4] or row[5]) if ANON else row[4] or row[5]
         response_tweet_ids = ','.join([str(tweet_ids[reply]) for reply in replies[row[0]]]) \
@@ -131,7 +131,7 @@ def export_to(fileio):
             walk_conversations_backwards(row_dict[row[6]])
 
     for row in rows:
-        if row[2].lower() not in CUSTOMER_SUPPORT_SNS or not row[6] or row[6] not in row_dict:
+        if row[2] is None or row[2].lower() not in CUSTOMER_SUPPORT_SNS or not row[6] or row[6] not in row_dict:
             # Skip non-customer support response tweets to start each conversation
             continue
 
