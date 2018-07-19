@@ -68,9 +68,10 @@ def export_to(fileio):
 
     for row in rows:
         # Construct screen name to id mapping and add forward links to replies
-        screen_name_to_id[row[2].lower()] = row[1]
-        if row[6]:
-            replies[row[6]].append(row[0])
+        if isinstance(row[2], str):
+            screen_name_to_id[row[2].lower()] = row[1]
+            if row[6]:
+                replies[row[6]].append(row[0])
 
     for row in rows:
         for prefix, sn in sn_re.findall(row[4] or row[5]):
