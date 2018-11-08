@@ -9,7 +9,10 @@ Compatibility: Python 3.6 and up.
 The project uses Postgres, so you'll need to create a database for it:
 
 ```bash
-$ createdb twitter_cs
+$ sudo pg_createcluster -p 5455 11 twcs
+$ sudo systemctl daemon-reload
+$ sudo systemctl restart postgresql@11-twcs
+$ sudo -Hu postgres psql -p 5455 -c "create role stuart superuser login;" && sudo -Hu postgres psql -p 5455 -c "create database twitter_cs with owner stuart;"
 $ psql twitter_cs -f create.sql
 ```
 
