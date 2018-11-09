@@ -4,4 +4,3 @@ python-dotenv
 toolz
 commonregex
 retrying
-git+https://github.com/soaxelbrooke/generating-reviews-discovering-sentiment.git@master
